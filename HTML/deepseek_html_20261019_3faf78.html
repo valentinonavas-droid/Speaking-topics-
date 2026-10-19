@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaking Trainer · Niveles + Timer + Evaluación</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            --bg-dark: #080c14;
+            --panel: #101824;
+            --panel-2: #16212f;
+            --border: #233247;
+            --border-glow: #2e4a6b;
+            --text: #e2e8f0;
+            --text-dim: #8fa3bc;
+            --accent: #5b8def;
+            --accent-2: #7c5bef;
+            --success: #2ecc8f;
+            --warning: #f0b94b;
+            --danger: #ef5b6b;
+            --gold: #f0c75e;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -10%, #142033 0%, transparent 60%),
+                linear-gradient(180deg, #080c14 0%, #0a0f18 100%);
+            color: var(--text);
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ============ HEADER ============ */
+        .top-bar {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .brand h1 {
+            font-size: clamp(1.3rem, 3vw, 1.9rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(100deg, #ffffff, #8fb3ff 60%, #b28fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .brand p {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        /* ============ HUD ============ */
+        .hud {
+            display: flex;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+        }
+
+        .hud-chip {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0.5rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 82px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+        }
+
+        .hud-chip .label {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .hud-chip .value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        .hud-chip .value.gold { color: var(--gold); }
+        .hud-chip .value.green { color: var(--success); }
+        .hud-chip .value.red { color: var(--danger); }
+
+        /* ============ LAYOUT PRINCIPAL ============ */
+        .main-grid {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 1.2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ============ PANEL IZQUIERDO (NIVELES) ============ */
+        .levels-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.1rem;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-dim);
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .level-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .level-btn {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.7rem 0.85rem;
+            cursor: pointer;
+            text-align: left;
+            color: var(--text);
+            transition: all 0.15s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .level-btn:hover:not(.locked) {
+            border-color: var(--border-glow);
+            background: #1a2838;
+            transform: translateX(2px);
+        }
+
+        .level-btn.active {
+            border-color: var(--accent);
+            background: linear-gradient(90deg, #1a2f4d, #16212f);
+            box-shadow: 0 0 0 1px var(--accent), 0 4px 14px rgba(91, 141, 239, 0.25);
+        }
+
+        .level-btn.locked {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        .level-btn .lvl-name { display: flex; align-items: center; gap: 0.5rem; }
+
+        .level-btn .badge {
+            font-size: 0.62rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 20px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-a1 { background: #1e4d3a; color: #7ee2b8; }
+        .badge-a2 { background: #1e3a4d; color: #7ec8e2; }
+        .badge-b1 { background: #4d3a1e; color: #e2c87e; }
+        .badge-b2 { background: #4d1e3a; color: #e27ec8; }
+
+        .level-btn .lock-icon { font-size: 0.75rem; opacity: 0.8; }
+        .level-btn .score-mini { font-size: 0.7rem; color: var(--text-dim); font-weight: 500; }
+
+        .progress-mini {
+            margin-top: 0.9rem;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+            padding-top: 0.7rem;
+            border-top: 1px dashed var(--border);
+        }
+
+        /* ============ PANEL DERECHO (JUEGO) ============ */
+        .game-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.4rem;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+            min-height: 480px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Estado: esperando start */
+        .start-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.2rem;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .start-screen .icon-big {
+            font-size: 3.5rem;
+            filter: drop-shadow(0 0 20px rgba(91, 141, 239, 0.5));
+        }
+
+        .start-screen h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .start-screen p {
+            color: var(--text-dim);
+            max-width: 440px;
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
+        .start-screen .rules {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem 1.3rem;
+            text-align: left;
+            max-width: 480px;
+            font-size: 0.83rem;
+            color: var(--text-dim);
+            line-height: 1.8;
+        }
+
+        .start-screen .rules strong { color: var(--text); }
+
+        /* Botón START */
+        .btn {
+            border: none;
+            border-radius: 14px;
+            padding: 0.85rem 2.2rem;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #5b8def, #7c5bef);
+            color: white;
+            box-shadow: 0 6px 22px rgba(91, 141, 239, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(91, 141, 239, 0.55);
+        }
+
+        .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(0.4);
+        }
+
+        .btn-ghost {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-ghost:hover { border-color: var(--border-glow); background: #1a2838; }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #d94b5c, #b0364a);
+            color: white;
+        }
+        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(217, 75, 92, 0.4); }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc8f, #20a878);
+            color: #04140d;
+        }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(46, 204, 143, 0.4); }
+
+        /* ============ TARJETA ACTIVA / PREGUNTA ============ */
+        .question-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .q-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+        }
+
+        .q-index {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .q-index span { color: var(--accent); }
+
+        .timer-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .timer-ring {
+            position: relative;
+            width: 62px;
+            height: 62px;
+        }
+
+        .timer-ring svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .timer-ring .bg-circle { fill: none; stroke: var(--border); stroke-width: 5; }
+        .timer-ring .fg-circle {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 5;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.25s linear, stroke 0.3s;
+        }
+
+        .timer-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.05rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        .timer-text.warn { color: var(--warning); }
+        .timer-text.critical { color: var(--danger); animation: pulse 0.8s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Tarjeta de pregunta */
+        .question-card {
+            background: linear-gradient(145deg, #121d2c, #0d1520);
+            border: 1px solid var(--border-glow);
+            border-radius: 18px;
+            padding: 1.5rem 1.6rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .question-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        }
+
+        .question-topic {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--accent);
+            font-weight: 800;
+            margin-bottom: 0.6rem;
+        }
+
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #f1f5fb;
+        }
+
+        /* Área de respuesta */
+        .answer-area {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .answer-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .word-count {
+            font-weight: 600;
+            color: var(--text-dim);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .word-count.ok { color: var(--success); }
+        .word-count.mid { color: var(--warning); }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: #0a121c;
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.97rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.18);
+        }
+
+        textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #070d15;
+        }
+
+        textarea::placeholder { color: #4a5c72; }
+
+        .answer-actions {
+            display: flex;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .spacer { flex: 1; }
+
+        /* ============ RESULTADOS / EVALUACIÓN ============ */
+        .result-box {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.2rem 1.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            animation: slideIn 0.35s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .result-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .score-pill {
+            font-size: 1.3rem;
+            font-weight: 900;
+            padding: 0.25rem 0.9rem;
+            border-radius: 30px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-pill.great { background: rgba(46, 204, 143, 0.15); color: var(--success); border: 1px solid rgba(46, 204, 143, 0.4); }
+        .score-pill.good { background: rgba(240, 185, 75, 0.15); color: var(--warning); border: 1px solid rgba(240, 185, 75, 0.4); }
+        .score-pill.bad { background: rgba(239, 91, 107, 0.15); color: var(--danger); border: 1px solid rgba(239, 91, 107, 0.4); }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.6rem;
+        }
+
+        .metric {
+            background: #0c1420;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 0.6rem 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .metric .m-label {
+            font-size: 0.63rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            font-weight: 700;
+        }
+
+        .metric .m-value {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .metric .m-value.ok { color: var(--success); }
+        .metric .m-value.mid { color: var(--warning); }
+        .metric .m-value.bad { color: var(--danger); }
+
+        .model-answer {
+            background: #0c1420;
+            border-left: 3px solid var(--accent-2);
+            border-radius: 0 11px 11px 0;
+            padding: 0.9rem 1rem;
+        }
+
+        .model-answer .ma-label {
+            font-size: 0.66rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-2);
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .model-answer p {
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: #c6d3e4;
+            font-style: italic;
+        }
+
+        .feedback-line {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+            padding-top: 0.3rem;
+        }
+
+        .feedback-line strong { color: var(--text); }
+
+        /* ============ FIN DE NIVEL ============ */
+        .end-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.3rem;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .end-screen .big-emoji { font-size: 4rem; }
+
+        .end-screen h2 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            background: linear-gradient(100deg, #fff, #8fb3ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .final-stats {
+            display: flex;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .final-stat {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0.9rem 1.3rem;
+            min-width: 110px;
+        }
+
+        .final-stat .fs-val {
+            font-size: 1.7rem;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .final-stat .fs-lbl {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            font-weight: 700;
+            margin-top: 0.15rem;
+        }
+
+        /* ============ OVERLAY GAME OVER ============ */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 8, 14, 0.88);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            z-index: 100;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .overlay-box {
+            background: var(--panel);
+            border: 1px solid var(--danger);
+            border-radius: 22px;
+            padding: 2rem 2.2rem;
+            max-width: 460px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(239, 91, 107, 0.25), 0 20px 50px rgba(0,0,0,0.6);
+            animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .overlay-box .ov-emoji { font-size: 3.5rem; margin-bottom: 0.7rem; }
+
+        .overlay-box h2 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+        }
+
+        .overlay-box p {
+            color: var(--text-dim);
+            font-size: 0.92rem;
+            line-height: 1.65;
+            margin-bottom: 1.4rem;
+        }
+
+        .overlay-box p strong { color: var(--text); }
+
+        .overlay-actions {
+            display: flex;
+            gap: 0.7rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ============ UTILIDADES ============ */
+        .hidden { display: none !important; }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--panel-2);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+            z-index: 200;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.success { border-color: rgba(46, 204, 143, 0.5); }
+        .toast.error { border-color: rgba(239, 91, 107, 0.5); }
+        .toast.warn { border-color: rgba(240, 185, 75, 0.5); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0a121c; }
+        ::-webkit-scrollbar-thumb { background: #233247; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2e4a6b; }
+    </style>
+</head>
+<body>
+
+    <!-- ============ TOP BAR / HUD ============ -->
+    <div class="top-bar">
+        <div class="brand">
+            <h1>🎙️ Speaking Trainer Pro</h1>
+            <p>Escribí tu respuesta · Timer por pregunta · Evaluación automática</p>
+        </div>
+        <div class="hud">
+            <div class="hud-chip">
+                <span class="label">Puntaje</span>
+                <span class="value gold" id="hudScore">0</span>
+            </div>
+            <div class="hud-chip">
+                <span class="label">Racha</span>
+                <span class="value green" id="hudStreak">0</span>
+            </div>
+            <div class="hud-chip">
+                <span class="label">Pregunta</span>
+                <span class="value" id="hudProgress">–/–</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ MAIN GRID ============ -->
+    <div class="main-grid">
+
+        <!-- ===== PANEL DE NIVELES ===== -->
+        <aside class="levels-panel">
+            <div class="panel-title">Niveles</div>
+            <div class="level-list" id="levelList"></div>
+            <div class="progress-mini">
+                <span>Completados</span>
+                <span id="completedCount">0 / 4</span>
+            </div>
+        </aside>
+
+        <!-- ===== PANEL DE JUEGO ===== -->
+        <main class="game-panel" id="gamePanel">
+            <!-- Se inyecta dinámicamente -->
+        </main>
+
+    </div>
+
+    <!-- ============ OVERLAY GAME OVER ============ -->
+    <div class="overlay hidden" id="gameOverOverlay">
+        <div class="overlay-box">
+            <div class="ov-emoji">⏰</div>
+            <h2>¡Se acabó el tiempo!</h2>
+            <p id="gameOverMsg">No respondiste dentro del límite de <strong>30 segundos</strong>. Esta pregunta queda anulada.</p>
+            <div class="overlay-actions">
+                <button class="btn btn-primary" id="btnRetryQuestion">🔄 Reintentar pregunta</button>
+                <button class="btn btn-ghost" id="btnEndLevel">📊 Ver resultados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ TOAST ============ -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+    /* =====================================================================
+       SISTEMA DE SPEAKING TRAINER PRO
+       - Niveles progresivos con bloqueo
+       - Timer por pregunta (configurable)
+       - Escritura de respuestas con validación
+       - Evaluación automática compleja (longitud, vocabulario, estructura)
+       - Modelo de respuesta siempre visible al tocar la tarjeta
+       - Sistema de puntaje, rachas y bonuses
+    ===================================================================== */
+
+    // ---------------------------------------------------------------------
+    // 1. BANCO DE PREGUNTAS POR NIVEL
+    // ---------------------------------------------------------------------
+    const LEVELS = [
+        {
+            id: 'A1',
+            name: 'Principiante',
+            badge: 'A1',
+            badgeClass: 'badge-a1',
+            timePerQuestion: 45,          // segundos
+            unlockScore: 0,
+            questions: [
+                {
+                    topic: 'Daily Routine',
+                    text: 'What do you usually do in the morning?',
+                    model: 'I usually wake up at 7 a.m. I brush my teeth, take a shower and have breakfast. Then I go to work by bus. In the morning I check my emails and talk to my team.',
+                    keywords: ['wake', 'morning', 'breakfast', 'work', 'usually', 'then']
+                },
+                {
+                    topic: 'Family',
+                    text: 'Tell me about your family.',
+                    model: 'I have a small family. There are four people: my parents, my sister and me. My father is a teacher and my mother is a nurse. We are very close and we have dinner together every Sunday.',
+                    keywords: ['family', 'mother', 'father', 'sister', 'brother', 'parents']
+                },
+                {
+                    topic: 'Food',
+                    text: 'What is your favourite food and why?',
+                    model: 'My favourite food is pizza because it is delicious and easy to share with friends. I love the combination of cheese, tomato and bread. On weekends I usually order pizza with my family.',
+                    keywords: ['favourite', 'food', 'because', 'delicious', 'love', 'eat']
+                },
+                {
+                    topic: 'Hobbies',
+                    text: 'What do you like to do in your free time?',
+                    model: 'In my free time I like reading books and playing football with my friends. I also enjoy watching movies on Netflix. Reading helps me relax and football keeps me healthy.',
+                    keywords: ['free', 'time', 'like', 'enjoy', 'play', 'reading', 'hobby']
+                },
+                {
+                    topic: 'Weather',
+                    text: 'What is your favourite season and why?',
+                    model: 'My favourite season is spring because the weather is warm but not too hot. I love seeing flowers and trees turn green. It is perfect for walking outside and having a picnic in the park.',
+                    keywords: ['season', 'spring', 'summer', 'winter', 'because', 'weather', 'favourite']
+                }
+            ]
+        },
+        {
+            id: 'A2',
+            name: 'Elemental',
+            badge: 'A2',
+            badgeClass: 'badge-a2',
+            timePerQuestion: 60,
+            unlockScore: 40,
+            questions: [
+                {
+                    topic: 'Travel',
+                    text: 'Describe a memorable trip you have taken. Where did you go and what did you do?',
+                    model: 'Two years ago I travelled to Bariloche with my best friends. We stayed for five days and explored the mountains. We went hiking every morning, tried local chocolate and took a boat trip on the lake. It was unforgettable because we laughed a lot and the landscapes were stunning.',
+                    keywords: ['trip', 'travel', 'went', 'stayed', 'because', 'beautiful', 'memorable']
+                },
+                {
+                    topic: 'Technology',
+                    text: 'How do you use technology in your daily life?',
+                    model: 'I use technology every day for many things. I check my phone in the morning, use my laptop for work and listen to music on Spotify. I also use video calls to talk to my family who lives abroad. Technology makes my life easier but I try to disconnect at night.',
+                    keywords: ['technology', 'phone', 'computer', 'use', 'daily', 'life', 'internet']
+                },
+                {
+                    topic: 'Education',
+                    text: 'What was your favourite subject at school? Why?',
+                    model: 'My favourite subject at school was history because I loved learning about ancient civilisations. My teacher told amazing stories and we did fun projects. It helped me understand the world better and improved my critical thinking.',
+                    keywords: ['school', 'subject', 'favourite', 'because', 'teacher', 'learn', 'history']
+                },
+                {
+                    topic: 'Shopping',
+                    text: 'Do you prefer shopping online or in stores? Why?',
+                    model: 'I prefer shopping online because it is more convenient and I can compare prices easily. However, I like going to stores for clothes because I need to try them on. Online shopping saves me time but sometimes I miss the experience of browsing.',
+                    keywords: ['shopping', 'online', 'store', 'prefer', 'because', 'convenient', 'clothes']
+                },
+                {
+                    topic: 'Music',
+                    text: 'What kind of music do you listen to and when?',
+                    model: 'I listen to pop and rock music. I usually play music while I am cooking or exercising because it gives me energy. When I need to relax, I listen to acoustic songs. Music is very important to me because it changes my mood.',
+                    keywords: ['music', 'listen', 'song', 'because', 'relax', 'energy', 'mood']
+                }
+            ]
+        },
+        {
+            id: 'B1',
+            name: 'Intermedio',
+            badge: 'B1',
+            badgeClass: 'badge-b1',
+            timePerQuestion: 75,
+            unlockScore: 120,
+            questions: [
+                {
+                    topic: 'Environment',
+                    text: 'What do you think are the biggest environmental problems today? What can we do about them?',
+                    model: 'I believe climate change and plastic pollution are the biggest environmental problems. Climate change causes extreme weather and affects agriculture. We can reduce plastic use, recycle more and use public transport. Governments should also invest in renewable energy. Small daily actions can make a real difference if everyone participates.',
+                    keywords: ['environment', 'climate', 'pollution', 'recycle', 'problem', 'solution', 'plastic', 'energy']
+                },
+                {
+                    topic: 'Social Media',
+                    text: 'How has social media changed the way people communicate? Is it positive or negative?',
+                    model: 'Social media has completely transformed communication. We can now connect instantly with people around the world, share ideas and build communities. However, it can also cause isolation and comparison. I think it is positive if used consciously. The key is balance: enjoy the benefits without letting it control our lives.',
+                    keywords: ['social', 'media', 'communication', 'positive', 'negative', 'connect', 'online', 'balance']
+                },
+                {
+                    topic: 'Work-Life Balance',
+                    text: 'How important is work-life balance? What do you do to maintain it?',
+                    model: 'Work-life balance is crucial for mental health and productivity. When we are constantly working, we burn out quickly. I try to maintain balance by setting clear boundaries: I do not check emails after 8 p.m. and I reserve weekends for family. I also exercise three times a week. These habits help me stay focused and happy.',
+                    keywords: ['balance', 'work', 'life', 'health', 'stress', 'important', 'time', 'family']
+                },
+                {
+                    topic: 'Future Plans',
+                    text: 'Where do you see yourself in five years? What are your goals?',
+                    model: 'In five years I would like to have a better job and speak English fluently. My main goal is to travel more and learn about different cultures. I also want to improve my professional skills by taking courses. Personally, I hope to be living in a bigger city with my own apartment.',
+                    keywords: ['future', 'five', 'years', 'goal', 'plan', 'hope', 'want', 'travel']
+                },
+                {
+                    topic: 'Culture',
+                    text: 'Why is it important to learn about other cultures?',
+                    model: 'Learning about other cultures is essential because it broadens our perspective and reduces prejudice. When we understand different traditions, we become more tolerant and empathetic. It also improves communication in a globalised world. Personally, travelling and reading about other countries has taught me to appreciate diversity and question my own assumptions.',
+                    keywords: ['culture', 'important', 'learn', 'different', 'world', 'understand', 'diversity', 'tradition']
+                }
+            ]
+        },
+        {
+            id: 'B2',
+            name: 'Avanzado',
+            badge: 'B2',
+            badgeClass: 'badge-b2',
+            timePerQuestion: 90,
+            unlockScore: 250,
+            questions: [
+                {
+                    topic: 'Artificial Intelligence',
+                    text: 'How do you think artificial intelligence will affect employment in the next decade? Support your opinion.',
+                    model: 'AI will undoubtedly transform the job market. On one hand, it will automate repetitive tasks, which could displace workers in manufacturing and administration. On the other hand, it will create new roles in data science, ethics and AI maintenance. The key challenge is reskilling. I believe governments and companies must invest in education so that workers can transition. Rather than fearing AI, we should focus on complementing human skills like creativity and empathy.',
+                    keywords: ['artificial', 'intelligence', 'job', 'employment', 'future', 'automation', 'skill', 'education', 'technology']
+                },
+                {
+                    topic: 'Globalisation',
+                    text: 'What are the advantages and disadvantages of globalisation? Give examples.',
+                    model: 'Globalisation has clear advantages: access to cheaper products, cultural exchange and economic growth in developing countries. For instance, we can buy fruit from another continent at any time. However, it also has disadvantages: local industries can collapse, and cultural homogenisation threatens traditions. Moreover, multinational companies sometimes exploit weak labour laws. In my view, fair trade agreements and strong local policies can mitigate the negative effects while preserving the benefits.',
+                    keywords: ['globalisation', 'advantage', 'disadvantage', 'economy', 'culture', 'trade', 'example', 'local']
+                },
+                {
+                    topic: 'Ethics in Science',
+                    text: 'Should scientific research have ethical limits? Discuss with examples.',
+                    model: 'Absolutely, scientific research must have ethical limits. Without them, we risk dehumanising subjects and causing irreversible harm. For example, gene editing in humans raises serious concerns about designer babies and inequality. Similarly, animal testing, while sometimes necessary, requires strict regulation. Ethical review boards are essential. Science should serve humanity, not the other way around, and that means prioritising dignity, safety and justice over pure discovery.',
+                    keywords: ['ethic', 'science', 'research', 'limit', 'example', 'human', 'risk', 'regulation', 'responsibility']
+                },
+                {
+                    topic: 'Media & Truth',
+                    text: 'In the era of fake news, how can we determine what is true? What is the role of critical thinking?',
+                    model: 'Determining truth in the fake news era requires active critical thinking. First, we should verify sources: reputable outlets have editorial standards and correction policies. Second, we must check multiple perspectives before forming an opinion. Third, recognising emotional manipulation is key, because fake news often appeals to fear or anger. Media literacy education is fundamental. Ultimately, critical thinking is our best defence: questioning, cross-referencing and refusing to share unverified content.',
+                    keywords: ['media', 'fake', 'news', 'truth', 'critical', 'thinking', 'source', 'verify', 'information']
+                }
+            ]
+        }
+    ];
+
+    // ---------------------------------------------------------------------
+    // 2. ESTADO GLOBAL DEL JUEGO
+    // ---------------------------------------------------------------------
+    const state = {
+        currentLevelIndex: 0,
+        currentQuestionIndex: 0,
+        totalScore: 0,
+        streak: 0,
+        bestStreak: 0,
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        completedLevels: new Set(),
+        levelScores: {},              // { A1: { score, correct, total } }
+        // Estado de la pregunta actual
+        phase: 'idle',                // 'idle' | 'answering' | 'evaluated' | 'gameover' | 'levelend'
+        timeLeft: 0,
+        timerInterval: null,
+        answerSubmitted: false,
+        lastEvaluation: null,
+        // Control de niveles desbloqueados
+        unlockedLevels: new Set(['A1']),
+        usedQuestions: {}             // Preguntas ya usadas por nivel para no repetir
+    };
+
+    // Referencias DOM
+    const els = {
+        levelList: document.getElementById('levelList'),
+        gamePanel: document.getElementById('gamePanel'),
+        hudScore: document.getElementById('hudScore'),
+        hudStreak: document.getElementById('hudStreak'),
+        hudProgress: document.getElementById('hudProgress'),
+        completedCount: document.getElementById('completedCount'),
+        gameOverOverlay: document.getElementById('gameOverOverlay'),
+        gameOverMsg: document.getElementById('gameOverMsg'),
+        btnRetryQuestion: document.getElementById('btnRetryQuestion'),
+        btnEndLevel: document.getElementById('btnEndLevel'),
+        toast: document.getElementById('toast')
+    };
+
+    // ---------------------------------------------------------------------
+    // 3. UTILIDADES
+    // ---------------------------------------------------------------------
+    function showToast(msg, type = '') {
+        els.toast.textContent = msg;
+        els.toast.className = 'toast show ' + type;
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => {
+            els.toast.className = 'toast';
+        }, 2800);
+    }
+
+    function formatTime(sec) {
+        return Math.max(0, Math.ceil(sec)) + 's';
+    }
+
+    function getLevel() {
+        return LEVELS[state.currentLevelIndex];
+    }
+
+    function getQuestion() {
+        const lvl = getLevel();
+        const available = lvl.questions.filter((_, i) =>
+            !(state.usedQuestions[lvl.id] || []).includes(i)
+        );
+        // Si ya se usaron todas, reciclamos
+        if (available.length === 0) {
+            state.usedQuestions[lvl.id] = [];
+            return lvl.questions[0];
+        }
+        // Elegimos la primera disponible (secuencial)
+        const idx = lvl.questions.findIndex((_, i) =>
+            !(state.usedQuestions[lvl.id] || []).includes(i)
+        );
+        return lvl.questions[idx];
+    }
+
+    function markQuestionUsed() {
+        const lvl = getLevel();
+        const idx = lvl.questions.findIndex(q => q === getQuestion());
+        if (idx !== -1) {
+            if (!state.usedQuestions[lvl.id]) state.usedQuestions[lvl.id] = [];
+            state.usedQuestions[lvl.id].push(idx);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 4. RENDERIZADO DE NIVELES (sidebar)
+    // ---------------------------------------------------------------------
+    function renderLevels() {
+        els.levelList.innerHTML = '';
+        LEVELS.forEach((lvl, i) => {
+            const unlocked = state.unlockedLevels.has(lvl.id);
+            const completed = state.completedLevels.has(lvl.id);
+            const isActive = i === state.currentLevelIndex;
+
+            const btn = document.createElement('button');
+            btn.className = 'level-btn' + (isActive ? ' active' : '') + (!unlocked ? ' locked' : '');
+            btn.disabled = !unlocked;
+
+            let rightContent = '';
+            if (!unlocked) {
+                rightContent = '<span class="lock-icon">🔒</span>';
+            } else if (completed) {
+                rightContent = '<span class="score-mini">✓ ' + (state.levelScores[lvl.id]?.score ?? 0) + ' pts</span>';
+            } else if (isActive) {
+                rightContent = '<span class="score-mini">en curso</span>';
+            }
+
+            btn.innerHTML = `
+                <span class="lvl-name">
+                    <span class="badge ${lvl.badgeClass}">${lvl.badge}</span>
+                    ${lvl.name}
+                </span>
+                ${rightContent}
+            `;
+
+            if (unlocked) {
+                btn.addEventListener('click', () => {
+                    if (state.phase === 'answering' || state.phase === 'gameover') {
+                        showToast('Terminá o abandoná la pregunta actual primero.', 'warn');
+                        return;
+                    }
+                    selectLevel(i);
+                });
+            }
+
+            els.levelList.appendChild(btn);
+        });
+
+        els.completedCount.textContent = `${state.completedLevels.size} / ${LEVELS.length}`;
+    }
+
+    function selectLevel(index) {
+        if (index === state.currentLevelIndex && state.phase !== 'idle') return;
+        state.currentLevelIndex = index;
+        state.currentQuestionIndex = 0;
+        state.phase = 'idle';
+        state.answerSubmitted = false;
+        state.lastEvaluation = null;
+        clearInterval(state.timerInterval);
+        renderLevels();
+        renderStartScreen();
+        updateHUD();
+    }
+
+    // ---------------------------------------------------------------------
+    // 5. HUD
+    // ---------------------------------------------------------------------
+    function updateHUD() {
+        els.hudScore.textContent = state.totalScore;
+        els.hudStreak.textContent = state.streak;
+        const lvl = getLevel();
+        const total = lvl.questions.length;
+        els.hudProgress.textContent = state.phase === 'idle'
+            ? `–/${total}`
+            : `${Math.min(state.currentQuestionIndex + 1, total)}/${total}`;
+    }
+
+    // ---------------------------------------------------------------------
+    // 6. PANTALLA DE INICIO DEL NIVEL
+    // ---------------------------------------------------------------------
+    function renderStartScreen() {
+        clearInterval(state.timerInterval);
+        const lvl = getLevel();
+        const totalPts = state.levelScores[lvl.id]?.score ?? 0;
+
+        els.gamePanel.innerHTML = `
+            <div class="start-screen">
+                <div class="icon-big">${lvl.id === 'A1' ? '🌱' : lvl.id === 'A2' ? '🌿' : lvl.id === 'B1' ? '🌳' : '🔥'}</div>
+                <h2>Nivel ${lvl.badge} · ${lvl.name}</h2>
+                <p>Vas a responder <strong>${lvl.questions.length} preguntas</strong> de speaking escribiendo tu respuesta en inglés.</p>
+                <div class="rules">
+                    ⏱️ <strong>${lvl.timePerQuestion} segundos</strong> por pregunta.<br>
+                    ✍️ Escribí tu respuesta antes de que el tiempo llegue a cero.<br>
+                    🚫 Si el tiempo se agota, <strong>perdés la pregunta</strong> y se anula.<br>
+                    📖 Tocá la tarjeta de la pregunta para ver un <strong>modelo de respuesta</strong>.<br>
+                    🏆 Ganás puntos por longitud, vocabulario y estructura.<br>
+                    🔥 Las respuestas consecutivas buenas aumentan tu <strong>racha</strong> y multiplican el puntaje.
+                </div>
+                <button class="btn btn-primary" id="btnStartLevel">
+                    ▶️ Empezar nivel
+                </button>
+            </div>
+        `;
+
+        document.getElementById('btnStartLevel').addEventListener('click', () => {
+            state.currentQuestionIndex = 0;
+            state.phase = 'answering';
+            state.answerSubmitted = false;
+            startQuestion();
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    // 7. INICIAR UNA PREGUNTA
+    // ---------------------------------------------------------------------
+    function startQuestion() {
+        const lvl = getLevel();
+        const total = lvl.questions.length;
+
+        if (state.currentQuestionIndex >= total) {
+            endLevel();
+            return;
+        }
+
+        state.phase = 'answering';
+        state.answerSubmitted = false;
+        state.lastEvaluation = null;
+        state.timeLeft = lvl.timePerQuestion;
+
+        const q = getQuestion();
+        const circumference = 2 * Math.PI * 26; // radio 26
+
+        els.gamePanel.innerHTML = `
+            <div class="question-stage">
+                <div class="q-header">
+                    <div class="q-index">Pregunta <span>${state.currentQuestionIndex + 1}</span> de ${total}</div>
+                    <div class="timer-wrap">
+                        <div class="timer-ring">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="bg-circle" cx="30" cy="30" r="26"></circle>
+                                <circle class="fg-circle" id="timerCircle" cx="30" cy="30" r="26"
+                                    stroke-dasharray="${circumference}"
+                                    stroke-dashoffset="0"></circle>
+                            </svg>
+                            <div class="timer-text" id="timerText">${lvl.timePerQuestion}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question-card" id="questionCard" title="Clic para ver modelo de respuesta">
+                    <div class="question-topic">${q.topic}</div>
+                    <div class="question-text">${q.text}</div>
+                </div>
+
+                <div class="answer-area">
+                    <div class="answer-label">
+                        <span>Tu respuesta (en inglés)</span>
+                        <span class="word-count" id="wordCount">0 palabras</span>
+                    </div>
+                    <textarea id="answerInput" placeholder="Escribí tu respuesta acá... ¡el tiempo corre!" autocomplete="off" spellcheck="true"></textarea>
+                    <div class="answer-actions">
+                        <button class="btn btn-ghost" id="btnSkipQuestion">⏭️ Saltar (0 pts)</button>
+                        <div class="spacer"></div>
+                        <button class="btn btn-success" id="btnSubmitAnswer">✅ Enviar respuesta</button>
+                    </div>
+                </div>
+
+                <div id="resultContainer"></div>
+            </div>
+        `;
+
+        const textarea = document.getElementById('answerInput');
+        const wordCountEl = document.getElementById('wordCount');
+        const timerCircle = document.getElementById('timerCircle');
+        const timerText = document.getElementById('timerText');
+
+        // Actualizar contador de palabras
+        textarea.addEventListener('input', () => {
+            const words = textarea.value.trim().split(/\s+/).filter(Boolean).length;
+            wordCountEl.textContent = words + ' palabra' + (words !== 1 ? 's' : '');
+            wordCountEl.className = 'word-count' + (words >= 15 ? ' ok' : words >= 8 ? ' mid' : '');
+        });
+
+        // Focus automático
+        setTimeout(() => textarea.focus(), 100);
+
+        // Click en la tarjeta → mostrar modelo
+        document.getElementById('questionCard').addEventListener('click', showModelAnswer);
+
+        // Botón enviar
+        document.getElementById('btnSubmitAnswer').addEventListener('click', submitAnswer);
+
+        // Botón saltar
+        document.getElementById('btnSkipQuestion').addEventListener('click', () => {
+            if (state.phase !== 'answering') return;
+            clearInterval(state.timerInterval);
+            skipQuestion();
+        });
+
+        // Iniciar timer
+        startTimer(timerCircle, timerText, circumference);
+    }
+
+    // ---------------------------------------------------------------------
+    // 8. TIMER
+    // ---------------------------------------------------------------------
+    function startTimer(circleEl, textEl, circumference) {
+        clearInterval(state.timerInterval);
+        const lvl = getLevel();
+        const totalTime = lvl.timePerQuestion;
+        state.timeLeft = totalTime;
+
+        function tick() {
+            state.timeLeft -= 0.1;
+            if (state.timeLeft <= 0) {
+                state.timeLeft = 0;
+                updateTimerUI(0, totalTime, circleEl, textEl, circumference);
+                clearInterval(state.timerInterval);
+                if (state.phase === 'answering') {
+                    handleTimeOut();
+                }
+                return;
+            }
+            updateTimerUI(state.timeLeft, totalTime, circleEl, textEl, circumference);
+        }
+
+        state.timerInterval = setInterval(tick, 100);
+        updateTimerUI(state.timeLeft, totalTime, circleEl, textEl, circumference);
+    }
+
+    function updateTimerUI(timeLeft, totalTime, circleEl, textEl, circumference) {
+        const fraction = timeLeft / totalTime;
+        const offset = circumference * (1 - fraction);
+        circleEl.setAttribute('stroke-dashoffset', offset);
+
+        const secs = Math.ceil(timeLeft);
+        textEl.textContent = secs;
+
+        // Colores según urgencia
+        if (fraction > 0.5) {
+            circleEl.style.stroke = 'var(--success)';
+            textEl.className = 'timer-text';
+        } else if (fraction > 0.25) {
+            circleEl.style.stroke = 'var(--warning)';
+            textEl.className = 'timer-text warn';
+        } else {
+            circleEl.style.stroke = 'var(--danger)';
+            textEl.className = 'timer-text critical';
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 9. MOSTRAR MODELO DE RESPUESTA (al tocar la tarjeta)
+    // ---------------------------------------------------------------------
+    function showModelAnswer() {
+        const q = getQuestion();
+        // Evitar duplicados
+        if (document.getElementById('modelInline')) return;
+
+        const container = document.querySelector('.question-stage');
+        const modelDiv = document.createElement('div');
+        modelDiv.id = 'modelInline';
+        modelDiv.className = 'model-answer';
+        modelDiv.style.animation = 'slideIn 0.3s ease';
+        modelDiv.innerHTML = `
+            <div class="ma-label">📖 Modelo de respuesta (referencia)</div>
+            <p>${q.model}</p>
+        `;
+
+        // Insertar después de la tarjeta de pregunta
+        const questionCard = document.getElementById('questionCard');
+        questionCard.insertAdjacentElement('afterend', modelDiv);
+
+        showToast('Modelo de respuesta visible', 'success');
+    }
+
+    // ---------------------------------------------------------------------
+    // 10. ENVIAR RESPUESTA → EVALUACIÓN
+    // ---------------------------------------------------------------------
+    function submitAnswer() {
+        if (state.phase !== 'answering' || state.answerSubmitted) return;
+
+        const textarea = document.getElementById('answerInput');
+        const answer = textarea.value.trim();
+
+        if (!answer) {
+            showToast('Escribí algo antes de enviar.', 'error');
+            textarea.focus();
+            return;
+        }
+
+        const words = answer.split(/\s+/).filter(Boolean).length;
+        if (words < 3) {
+            showToast('Tu respuesta es demasiado corta (mínimo 3 palabras).', 'warn');
+            return;
+        }
+
+        state.answerSubmitted = true;
+        clearInterval(state.timerInterval);
+
+        const evaluation = evaluateAnswer(answer);
+        state.lastEvaluation = evaluation;
+
+        // Actualizar estadísticas
+        state.questionsAnswered++;
+        const lvl = getLevel();
+
+        // Puntaje con multiplicador de racha
+        const streakMultiplier = 1 + Math.min(state.streak * 0.15, 1.5);
+        const earned = Math.round(evaluation.score * streakMultiplier);
+        state.totalScore += earned;
+
+        if (evaluation.score >= 55) {
+            state.streak++;
+            state.correctAnswers++;
+        } else {
+            state.streak = 0;
+        }
+        if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+
+        // Guardar puntaje por nivel
+        if (!state.levelScores[lvl.id]) {
+            state.levelScores[lvl.id] = { score: 0, correct: 0, total: 0 };
+        }
+        state.levelScores[lvl.id].score += earned;
+        state.levelScores[lvl.id].total++;
+        if (evaluation.score >= 55) state.levelScores[lvl.id].correct++;
+
+        // Marcar pregunta usada
+        markQuestionUsed();
+
+        updateHUD();
+        renderEvaluation(evaluation, earned, answer);
+    }
+
+    // ---------------------------------------------------------------------
+    // 11. SISTEMA DE EVALUACIÓN COMPLEJO
+    // ---------------------------------------------------------------------
+    function evaluateAnswer(answer) {
+        const q = getQuestion();
+        const lvl = getLevel();
+        const words = answer.trim().split(/\s+/).filter(Boolean);
+        const wordCount = words.length;
+        const lower = answer.toLowerCase();
+
+        // ---- 11.1 Longitud (30 pts) ----
+        let lengthScore = 0;
+        const minWords = lvl.id === 'A1' ? 15 : lvl.id === 'A2' ? 25 : lvl.id === 'B1' ? 40 : 55;
+        if (wordCount >= minWords) lengthScore = 30;
+        else if (wordCount >= minWords * 0.7) lengthScore = 22;
+        else if (wordCount >= minWords * 0.4) lengthScore = 14;
+        else lengthScore = Math.max(2, Math.round((wordCount / minWords) * 10));
+
+        // ---- 11.2 Vocabulario / keywords (30 pts) ----
+        const keywords = q.keywords || [];
+        let matched = 0;
+        keywords.forEach(kw => {
+            if (lower.includes(kw.toLowerCase())) matched++;
+        });
+        const keywordRatio = keywords.length ? matched / keywords.length : 0;
+        const vocabScore = Math.round(keywordRatio * 30);
+
+        // ---- 11.3 Estructura y gramática básica (25 pts) ----
+        let structureScore = 0;
+        const sentences = answer.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        if (sentences.length >= 2) structureScore += 8;
+        if (sentences.length >= 4) structureScore += 4;
+        // Capitalización inicial
+        if (/^[A-ZÁÉÍÓÚÑ]/.test(answer.trim())) structureScore += 4;
+        // Puntuación final
+        if (/[.!?]$/.test(answer.trim())) structureScore += 4;
+        // Conectores
+        const connectors = ['because', 'however', 'although', 'moreover', 'therefore', 'for example', 'in addition', 'on the other hand', 'also', 'but', 'and', 'so', 'then', 'finally'];
+        let connectorCount = 0;
+        connectors.forEach(c => {
+            const regex = new RegExp('\\b' + c + '\\b', 'gi');
+            if (regex.test(answer)) connectorCount++;
+        });
+        if (connectorCount >= 1) structureScore += 3;
+        if (connectorCount >= 3) structureScore += 2;
+        structureScore = Math.min(25, structureScore);
+
+        // ---- 11.4 Penalizaciones ----
+        let penalty = 0;
+        // Repetición excesiva de la misma palabra (top 3)
+        const wordFreq = {};
+        words.forEach(w => {
+            const clean = w.toLowerCase().replace(/[^a-záéíóúñ]/g, '');
+            if (clean.length > 2) wordFreq[clean] = (wordFreq[clean] || 0) + 1;
+        });
+        const maxFreq = Math.max(...Object.values(wordFreq), 1);
+        if (maxFreq > wordCount * 0.4 && wordCount > 10) penalty += 5;
+
+        // Texto que parece copiado del modelo (muy similar)
+        const modelWords = q.model.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+        let copiedCount = 0;
+        modelWords.forEach(mw => {
+            if (lower.includes(mw)) copiedCount++;
+        });
+        const copyRatio = modelWords.length ? copiedCount / modelWords.length : 0;
+        if (copyRatio > 0.8 && wordCount > 20) penalty += 10; // copió casi todo
+
+        // ---- Total ----
+        let rawScore = lengthScore + vocabScore + structureScore - penalty;
+        rawScore = Math.max(0, Math.min(100, rawScore));
+
+        // ---- Feedback cualitativo ----
+        let feedback = '';
+        if (rawScore >= 85) feedback = '¡Excelente! Respuesta completa, bien estructurada y con vocabulario relevante.';
+        else if (rawScore >= 70) feedback = 'Muy buena respuesta. Podés mejorar agregando más detalles o conectores.';
+        else if (rawScore >= 55) feedback = 'Buena base. Intentá extenderte un poco más y usar más vocabulario del tema.';
+        else if (rawScore >= 35) feedback = 'Respuesta aceptable pero corta. Desarrollá más tus ideas y usá oraciones completas.';
+        else feedback = 'Respuesta muy breve o poco relacionada. Leé el modelo y volvé a intentarlo.';
+
+        if (wordCount < 5) feedback = 'Escribiste muy poco. Necesitás al menos una oración completa.';
+
+        return {
+            score: rawScore,
+            wordCount,
+            lengthScore,
+            vocabScore,
+            structureScore,
+            penalty,
+            matchedKeywords: matched,
+            totalKeywords: keywords.length,
+            connectorCount,
+            sentences: sentences.length,
+            feedback
+        };
+    }
+
+    // ---------------------------------------------------------------------
+    // 12. RENDERIZAR EVALUACIÓN
+    // ---------------------------------------------------------------------
+    function renderEvaluation(ev, earned, userAnswer) {
+        const q = getQuestion();
+        const container = document.getElementById('resultContainer');
+        const textarea = document.getElementById('answerInput');
+        const submitBtn = document.getElementById('btnSubmitAnswer');
+        const skipBtn = document.getElementById('btnSkipQuestion');
+
+        if (textarea) textarea.disabled = true;
+        if (submitBtn) submitBtn.disabled = true;
+        if (skipBtn) skipBtn.disabled = true;
+
+        // Ocultar modelo inline si estaba
+        const modelInline = document.getElementById('modelInline');
+        // Lo dejamos visible para comparar, pero lo movemos? Mejor lo dejamos.
+
+        const scoreClass = ev.score >= 70 ? 'great' : ev.score >= 45 ? 'good' : 'bad';
+        const lengthOk = ev.lengthScore >= 22 ? 'ok' : ev.lengthScore >= 14 ? 'mid' : 'bad';
+        const vocabOk = ev.vocabScore >= 20 ? 'ok' : ev.vocabScore >= 12 ? 'mid' : 'bad';
+        const structOk = ev.structureScore >= 18 ? 'ok' : ev.structureScore >= 10 ? 'mid' : 'bad';
+
+        const streakMultiplier = (1 + Math.min(state.streak * 0.15, 1.5)).toFixed(2);
+        const passed = ev.score >= 55;
+
+        container.innerHTML = `
+            <div class="result-box">
+                <div class="result-header">
+                    <h3>${passed ? '✅' : '⚠️'} Evaluación de tu respuesta</h3>
+                    <span class="score-pill ${scoreClass}">${ev.score} / 100</span>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric">
+                        <span class="m-label">Longitud</span>
+                        <span class="m-value ${lengthOk}">${ev.lengthScore}/30</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Vocabulario</span>
+                        <span class="m-value ${vocabOk}">${ev.vocabScore}/30</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Estructura</span>
+                        <span class="m-value ${structOk}">${ev.structureScore}/25</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Palabras</span>
+                        <span class="m-value">${ev.wordCount}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Keywords</span>
+                        <span class="m-value">${ev.matchedKeywords}/${ev.totalKeywords}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Conectores</span>
+                        <span class="m-value">${ev.connectorCount}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Penalización</span>
+                        <span class="m-value ${ev.penalty > 0 ? 'bad' : 'ok'}">-${ev.penalty}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="m-label">Puntos ganados</span>
+                        <span class="m-value gold" style="color:var(--gold)">+${earned}</span>
+                    </div>
+                </div>
+
+                <div class="model-answer">
+                    <div class="ma-label">📖 Modelo de respuesta</div>
+                    <p>${q.model}</p>
+                </div>
+
+                <div class="feedback-line">
+                    <strong>Feedback:</strong> ${ev.feedback}<br>
+                    <span style="color:var(--text-dim)">Multiplicador de racha aplicado: x${streakMultiplier}</span>
+                </div>
+
+                <div class="answer-actions" style="margin-top:0.4rem">
+                    <button class="btn btn-ghost" id="btnRetrySame">🔄 Reintentar esta pregunta</button>
+                    <div class="spacer"></div>
+                    <button class="btn btn-primary" id="btnNextQuestion">➡️ Siguiente pregunta</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('btnNextQuestion').addEventListener('click', nextQuestion);
+        document.getElementById('btnRetrySame').addEventListener('click', () => {
+            // Reintentar sin avanzar: no cuenta puntaje previo (ya se sumó)
+            // Simplemente reiniciamos la misma pregunta
+            clearInterval(state.timerInterval);
+            state.phase = 'answering';
+            state.answerSubmitted = false;
+            startQuestion();
+        });
+
+        updateHUD();
+    }
+
+    // ---------------------------------------------------------------------
+    // 13. SIGUIENTE PREGUNTA
+    // ---------------------------------------------------------------------
+    function nextQuestion() {
+        clearInterval(state.timerInterval);
+        state.currentQuestionIndex++;
+        const lvl = getLevel();
+
+        if (state.currentQuestionIndex >= lvl.questions.length) {
+            endLevel();
+        } else {
+            state.phase = 'answering';
+            state.answerSubmitted = false;
+            startQuestion();
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 14. SALTAR PREGUNTA
+    // ---------------------------------------------------------------------
+    function skipQuestion() {
+        if (state.phase !== 'answering') return;
+        clearInterval(state.timerInterval);
+        state.streak = 0;
+        state.phase = 'evaluated';
+
+        // Evaluación vacía (0 pts)
+        const lvl = getLevel();
+        if (!state.levelScores[lvl.id]) {
+            state.levelScores[lvl.id] = { score: 0, correct: 0, total: 0 };
+        }
+        state.levelScores[lvl.id].total++;
+        markQuestionUsed();
+
+        const container = document.getElementById('resultContainer');
+        const textarea = document.getElementById('answerInput');
+        const submitBtn = document.getElementById('btnSubmitAnswer');
+        const skipBtn = document.getElementById('btnSkipQuestion');
+        if (textarea) textarea.disabled = true;
+        if (submitBtn) submitBtn.disabled = true;
+        if (skipBtn) skipBtn.disabled = true;
+
+        container.innerHTML = `
+            <div class="result-box">
+                <div class="result-header">
+                    <h3>⏭️ Pregunta saltada</h3>
+                    <span class="score-pill bad">0 / 100</span>
+                </div>
+                <div class="feedback-line">
+                    Decidiste saltar esta pregunta. No se otorgan puntos y tu racha se reinicia.
+                </div>
+                <div class="model-answer">
+                    <div class="ma-label">📖 Modelo de respuesta</div>
+                    <p>${getQuestion().model}</p>
+                </div>
+                <div class="answer-actions" style="margin-top:0.4rem">
+                    <button class="btn btn-ghost" id="btnRetrySame2">🔄 Reintentar</button>
+                    <div class="spacer"></div>
+                    <button class="btn btn-primary" id="btnNextQuestion2">➡️ Siguiente</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('btnNextQuestion2').addEventListener('click', nextQuestion);
+        document.getElementById('btnRetrySame2').addEventListener('click', () => {
+            state.phase = 'answering';
+            state.answerSubmitted = false;
+            startQuestion();
+        });
+
+        updateHUD();
+    }
+
+    // ---------------------------------------------------------------------
+    // 15. TIEMPO AGOTADO → GAME OVER PARCIAL
+    // ---------------------------------------------------------------------
+    function handleTimeOut() {
+        if (state.phase !== 'answering') return;
+        state.phase = 'gameover';
+        state.streak = 0;
+        state.answerSubmitted = true;
+
+        const lvl = getLevel();
+        if (!state.levelScores[lvl.id]) {
+            state.levelScores[lvl.id] = { score: 0, correct: 0, total: 0 };
+        }
+        state.levelScores[lvl.id].total++;
+        markQuestionUsed();
+
+        // Deshabilitar textarea y botones
+        const textarea = document.getElementById('answerInput');
+        const submitBtn = document.getElementById('btnSubmitAnswer');
+        const skipBtn = document.getElementById('btnSkipQuestion');
+        if (textarea) textarea.disabled = true;
+        if (submitBtn) submitBtn.disabled = true;
+        if (skipBtn) skipBtn.disabled = true;
+
+        // Mostrar overlay
+        els.gameOverMsg.innerHTML = `No respondiste dentro del límite de <strong>${lvl.timePerQuestion} segundos</strong>. Esta pregunta queda anulada y tu racha vuelve a cero.`;
+        els.gameOverOverlay.classList.remove('hidden');
+
+        updateHUD();
+    }
+
+    // ---------------------------------------------------------------------
+    // 16. FIN DE NIVEL
+    // ---------------------------------------------------------------------
+    function endLevel() {
+        clearInterval(state.timerInterval);
+        state.phase = 'levelend';
+        const lvl = getLevel();
+        const stats = state.levelScores[lvl.id] || { score: 0, correct: 0, total: 0 };
+        const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+
+        const passed = stats.correct >= Math.ceil(lvl.questions.length * 0.6);
+        if (passed && !state.completedLevels.has(lvl.id)) {
+            state.completedLevels.add(lvl.id);
+            // Desbloquear siguiente nivel
+            const nextIdx = state.currentLevelIndex + 1;
+            if (nextIdx < LEVELS.length) {
+                state.unlockedLevels.add(LEVELS[nextIdx].id);
+                showToast(`¡Nivel ${LEVELS[nextIdx].badge} desbloqueado!`, 'success');
+            }
+        }
+
+        renderLevels();
+
+        els.gamePanel.innerHTML = `
+            <div class="end-screen">
+                <div class="big-emoji">${passed ? '🏆' : '📚'}</div>
+                <h2>${passed ? '¡Nivel completado!' : 'Nivel finalizado'}</h2>
+                <div class="final-stats">
+                    <div class="final-stat">
+                        <div class="fs-val" style="color:var(--gold)">${stats.score}</div>
+                        <div class="fs-lbl">Puntos nivel</div>
+                    </div>
+                    <div class="final-stat">
+                        <div class="fs-val" style="color:var(--success)">${stats.correct}</div>
+                        <div class="fs-lbl">Respuestas OK</div>
+                    </div>
+                    <div class="final-stat">
+                        <div class="fs-val">${pct}%</div>
+                        <div class="fs-lbl">Precisión</div>
+                    </div>
+                    <div class="final-stat">
+                        <div class="fs-val" style="color:var(--accent)">${state.totalScore}</div>
+                        <div class="fs-lbl">Puntaje total</div>
+                    </div>
+                </div>
+                <p style="color:var(--text-dim); max-width:420px; line-height:1.6; font-size:0.9rem">
+                    ${passed
+                        ? 'Superaste el nivel. Podés pasar al siguiente o repetir para mejorar tu puntaje.'
+                        : 'Necesitás al menos el 60% de respuestas correctas para desbloquear el siguiente nivel. ¡Intentá de nuevo!'}
+                </p>
+                <div style="display:flex; gap:0.7rem; flex-wrap:wrap; justify-content:center; margin-top:0.5rem">
+                    <button class="btn btn-ghost" id="btnReplayLevel">🔄 Repetir nivel</button>
+                    ${passed && state.currentLevelIndex + 1 < LEVELS.length
+                        ? '<button class="btn btn-primary" id="btnNextLevel">➡️ Siguiente nivel</button>'
+                        : ''}
+                </div>
+            </div>
+        `;
+
+        document.getElementById('btnReplayLevel').addEventListener('click', () => {
+            state.usedQuestions[lvl.id] = [];
+            state.currentQuestionIndex = 0;
+            state.phase = 'idle';
+            state.answerSubmitted = false;
+            // No reseteamos levelScores para acumular? Mejor sí, para que sea limpio
+            state.levelScores[lvl.id] = { score: 0, correct: 0, total: 0 };
+            renderStartScreen();
+            updateHUD();
+        });
+
+        const nextLevelBtn = document.getElementById('btnNextLevel');
+        if (nextLevelBtn) {
+            nextLevelBtn.addEventListener('click', () => {
+                selectLevel(state.currentLevelIndex + 1);
+            });
+        }
+
+        updateHUD();
+    }
+
+    // ---------------------------------------------------------------------
+    // 17. OVERLAY: REINTENTAR / VER RESULTADOS
+    // ---------------------------------------------------------------------
+    els.btnRetryQuestion.addEventListener('click', () => {
+        els.gameOverOverlay.classList.add('hidden');
+        state.phase = 'answering';
+        state.answerSubmitted = false;
+        // Reintentar la misma pregunta sin avanzar índice
+        startQuestion();
+    });
+
+    els.btnEndLevel.addEventListener('click', () => {
+        els.gameOverOverlay.classList.add('hidden');
+        endLevel();
+    });
+
+    // ---------------------------------------------------------------------
+    // 18. INICIALIZACIÓN
+    // ---------------------------------------------------------------------
+    function init() {
+        // Desbloquear A1
+        state.unlockedLevels = new Set(['A1']);
+        state.completedLevels = new Set();
+        state.levelScores = {};
+        LEVELS.forEach(l => {
+            state.levelScores[l.id] = { score: 0, correct: 0, total: 0 };
+            state.usedQuestions[l.id] = [];
+        });
+
+        renderLevels();
+        renderStartScreen();
+        updateHUD();
+    }
+
+    init();
+
+    </script>
+</body>
+</html>
